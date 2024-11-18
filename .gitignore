@@ -2,3 +2,4 @@
 .venv/
 snapshots/
 equilibrium_config.txt
+plots/
