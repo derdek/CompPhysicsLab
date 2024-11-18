@@ -1,6 +1,6 @@
 import math
+from typing import List
 from helpers import get_dimensions
-
 
 class MolecularDynamics:
     def __init__(self, N, Lx, Ly, vmax, dt):
@@ -10,6 +10,7 @@ class MolecularDynamics:
         self.vmax = vmax
         self.dt = dt
         self.dt2 = dt ** 2
+        self.step_count = 0
 
         self.x = []
         self.y = []
@@ -108,6 +109,8 @@ class MolecularDynamics:
             self.vy[i] += 0.5 * self.ay[i] * self.dt
             ke += 0.5 * (self.vx[i] ** 2 + self.vy[i] ** 2)
         self.ke = ke
+
+        self.step_count += 1
 
     def temperature(self):
         ke = self.ke
