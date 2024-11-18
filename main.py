@@ -1,7 +1,6 @@
 import math
 import pygame
-import random
-from helpers import draw_particles, save_snapshot
+from helpers import draw_particles, save_snapshot, load_equilibrium_config
 from molecular_dynamics import MolecularDynamics
 
 
@@ -23,12 +22,14 @@ def main():
     screen = pygame.display.set_mode((container_width * aspect_ratio, container_height * aspect_ratio))
     pygame.display.set_caption("Molecular dynamics")
 
-    mol = MolecularDynamics(particles_count, container_width, container_height, max_speed, dt)
+    # Завантаження рівноважної конфігурації
+    x, y, vx, vy = load_equilibrium_config("equilibrium_config.txt")
 
-    # Надання випадкових швидкостей
-    for i in range(particles_count):
-        mol.vx[i] = random.uniform(-0.1, 0.1)
-        mol.vy[i] = random.uniform(-0.1, 0.1)
+    mol = MolecularDynamics(particles_count, container_width, container_height, max_speed, dt)
+    mol.x = x
+    mol.y = y
+    mol.vx = [v * 2 for v in vx]  # Збільшення швидкостей вдвічі
+    mol.vy = [v * 2 for v in vy]  # Збільшення швидкостей вдвічі
 
     running = True
     snapshots = []
@@ -78,9 +79,9 @@ def main():
             container_height
         )
 
-    # Виведення повної енергії системи
+    # Виведення нової повної енергії системи
     total_energy = mol.pe + mol.ke
-    print(f"Total energy of the system: {total_energy}")
+    print(f"New total energy of the system: {total_energy}")
 
     # Усереднення температури та тиску
     average_temperature = sum(temperatures) / len(temperatures)
@@ -88,11 +89,41 @@ def main():
     print(f"Average temperature: {average_temperature}")
     print(f"Average pressure: {average_pressure}")
 
-    # Збереження рівноважної конфігурації
-    equilibrium_config = (mol.x.copy(), mol.y.copy(), mol.vx.copy(), mol.vy.copy())
-    with open("equilibrium_config.txt", "w") as f:
-        for x, y, vx, vy in zip(*equilibrium_config):
-            f.write(f"{x} {y} {vx} {vy}\n")
+    # Повторення збільшення температури та вимірювання P(T) та E(T) для шести різних температур
+    temperature_factors = [1, 2, 3, 4, 5, 6]
+    for factor in temperature_factors:
+        mol.vx = [v * factor for v in vx]  # Збільшення швидкостей
+        mol.vy = [v * factor for v in vy]  # Збільшення швидкостей
+
+        running = True
+        temperatures = []
+        pressures = []
+        mol.step_count = 0
+
+        while running:
+            # Обчислення прискорень і інтегрування
+            mol.accel()
+            for _ in range(nsnap):
+                mol.verlet()
+
+            # Збереження температури та тиску
+            if mol.step_count >= equilibrium_steps and mol.step_count < equilibrium_steps + averaging_steps:
+                temperatures.append(mol.temperature())
+                pressures.append(mol.pressure())
+
+            # Перевірка кінця симуляції
+            if mol.step_count >= equilibrium_steps + averaging_steps:
+                running = False
+
+        # Усереднення температури та тиску
+        average_temperature = sum(temperatures) / len(temperatures)
+        average_pressure = sum(pressures) / len(pressures)
+        total_energy = mol.pe + mol.ke
+        print(f"Temperature factor: {factor}")
+        print(f"Average temperature: {average_temperature}")
+        print(f"Average pressure: {average_pressure}")
+        print(f"Total energy: {total_energy}")
+        print()
 
 
 if __name__ == "__main__":

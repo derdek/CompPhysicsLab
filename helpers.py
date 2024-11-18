@@ -1,7 +1,6 @@
-import os
-
 import pygame
 import matplotlib.pyplot as plt
+import os
 
 
 def draw_particles(screen, particles, aspect_ratio):
@@ -33,3 +32,15 @@ def save_snapshot(filename, particles, width, height):
     ax.set_ylim(0, height)
     plt.savefig(f'{output_dir}/{filename}')
     plt.close(fig)
+
+
+def load_equilibrium_config(filename):
+    x, y, vx, vy = [], [], [], []
+    with open(filename, "r") as f:
+        for line in f:
+            values = line.split()
+            x.append(float(values[0]))
+            y.append(float(values[1]))
+            vx.append(float(values[2]))
+            vy.append(float(values[3]))
+    return x, y, vx, vy
