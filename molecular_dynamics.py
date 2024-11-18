@@ -1,6 +1,6 @@
 import math
-from typing import List
 from helpers import get_dimensions
+
 
 class MolecularDynamics:
     def __init__(self, N, Lx, Ly, vmax, dt):
