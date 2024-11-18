@@ -1,30 +1,15 @@
 import math
-import pygame
-import random
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-from helpers import draw_particles, save_snapshot, load_equilibrium_config
+from helpers import save_snapshot, load_equilibrium_config
 from molecular_dynamics import MolecularDynamics
 
 
 def main():
-    fps = 30
-    delay = 1000 // fps
-
     particles_count = 16
     container_width = 4
     container_height = 2 * math.sqrt(3)
     nsnap = 5  # кількість кроків між малюванням
     max_speed = 0.2
     dt = 0.01
-
-    aspect_ratio = 300
-
-    # Ініціалізація Pygame
-    pygame.init()
-    screen = pygame.display.set_mode((container_width * aspect_ratio, container_height * aspect_ratio))
-    pygame.display.set_caption("Molecular dynamics")
 
     # Завантаження рівноважної конфігурації
     x, y, vx, vy = load_equilibrium_config("equilibrium_config.txt")
@@ -36,9 +21,11 @@ def main():
     mol.vy = vy
 
     scaling_factor = 1.1
+    ssf = 1
     melted = False
 
     while not melted:
+        ssf *= scaling_factor
         # Зменшення щільності
         mol.Lx *= scaling_factor
         mol.Ly *= scaling_factor
@@ -51,10 +38,6 @@ def main():
         mol.step_count = 0
 
         while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-
             # Обчислення прискорень і інтегрування
             mol.accel()
             for _ in range(nsnap):
@@ -78,17 +61,18 @@ def main():
         average_pressure = sum(pressure_list) / len(pressure_list)
         total_energy = mol.pe + mol.ke
 
-        print(f"Scaling factor: {scaling_factor}")
-        print(f"Average temperature: {average_temperature}")
-        print(f"Average pressure: {average_pressure}")
-        print(f"Total energy: {total_energy}")
+        print(f"Scaling factor: {ssf}")
+        print(f"Average temperature: {average_temperature} K")
+        print(f"Max temperature: {max(temp_list)} K")
+        print(f"Max pressure: {max(pressure_list)} Pa")
+        print(f"Average pressure: {average_pressure} Pa")
+        print(f"Total energy: {total_energy} J")
+        print()
 
         # Перевірка на плавлення
         if not mol.is_solid():
             melted = True
             print("The system has melted.")
-
-    pygame.quit()
 
 
 if __name__ == "__main__":

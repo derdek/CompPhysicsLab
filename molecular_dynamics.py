@@ -1,4 +1,7 @@
 import math
+import numpy as np
+from typing import List
+
 from helpers import get_dimensions
 
 
@@ -130,11 +133,52 @@ class MolecularDynamics:
                 virial += force * r
         return self.N * self.temperature() + virial / (2 * self.Lx * self.Ly)
 
-    def is_solid(self):
-        # Перевірка, чи залишається система в твердому стані
-        # Це просте припущення, що система залишається в твердому стані, якщо частинки не рухаються далеко від своїх початкових позицій
-        threshold = 0.1
-        for i in range(self.N):
-            if abs(self.x[i] - self.x[0]) > threshold or abs(self.y[i] - self.y[0]) > threshold:
-                return False
+    def is_solid(self, threshold_velocity=0.1, rdf_threshold=0.8):
+        # Розрахунок середньої кінетичної енергії
+        avg_ke = self.ke / self.N
+        # Розрахунок RDF
+        r, g = self.calculate_rdf(self.x, self.y, self.Lx, self.Ly, r_max=self.Lx / 2, num_bins=50)
+        # Перевірка умови на RDF
+        if max(g) < rdf_threshold:
+            return False
+        # Перевірка умови на середню кінетичну енергію
+        if avg_ke > threshold_velocity:
+            return False
+        # Інші додаткові умови (наприклад, аналіз флуктуацій)
         return True
+
+    def calculate_rdf(self, x, y, Lx, Ly, r_max, num_bins):
+        """
+        Розраховує радіальну функцію розподілу (RDF) для системи частинок.
+
+        Аргументи:
+            x, y: Масиви координат частинок по осях X та Y відповідно.
+            Lx, Ly: Розміри системи по осях X та Y.
+            r_max: Максимальна відстань для розрахунку RDF.
+            num_bins: Кількість інтервалів для гістограми RDF.
+
+        Повертає:
+            r: Масив відстаней.
+            g: Масив значень RDF.
+        """
+        N = len(x)
+        dr = r_max / num_bins
+        r = np.arange(dr, r_max + dr, dr)
+        g = np.zeros(num_bins)
+
+        for i in range(N):
+            for j in range(i + 1, N):
+                dx = x[i] - x[j]
+                dy = y[i] - y[j]
+                dx, dy = self.separation(dx, dy)  # Приведення до періодичних граничних умов
+                r_ij = np.sqrt(dx ** 2 + dy ** 2)
+                if r_ij < r_max:
+                    bin_index = int(r_ij // dr)
+                    g[bin_index] += 2  # Множимо на 2, оскільки кожну пару рахуємо двічі
+
+        # Нормалізація g(r)
+        rho = N / (Lx * Ly)
+        V_shell = 4 * np.pi * (r[1:] ** 3 - r[:-1] ** 3) / 3
+        g[:-1] /= (rho * V_shell)
+
+        return r, g
