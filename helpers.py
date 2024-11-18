@@ -1,12 +1,12 @@
 import pygame
 
 
-def draw_particles(screen, particles, aspect_ration):
+def draw_particles(screen, particles, aspect_ratio):
     for point in particles:
         pygame.draw.circle(
             screen,
             (255, 255, 0),
-            (point[0]*aspect_ration, point[1]*aspect_ration),
+            (point[0] * aspect_ratio, point[1] * aspect_ratio),
             radius=20,
         )
 
