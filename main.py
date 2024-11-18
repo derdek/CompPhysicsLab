@@ -1,7 +1,5 @@
 import math
-
 import pygame
-
 from helpers import draw_particles
 from molecular_dynamics import MolecularDynamics
 
@@ -21,7 +19,7 @@ def main():
 
     # Ініціалізація Pygame
     pygame.init()
-    screen = pygame.display.set_mode((container_width*aspect_ratio, container_height*aspect_ratio))
+    screen = pygame.display.set_mode((container_width * aspect_ratio, container_height * aspect_ratio))
     pygame.display.set_caption("Molecular dynamics")
 
     mol = MolecularDynamics(particles_count, container_width, container_height, max_speed, dt)

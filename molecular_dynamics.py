@@ -1,35 +1,23 @@
 import math
 from typing import List
-
 from helpers import get_dimensions
 
 
 class MolecularDynamics:
-    x: list = []  # компоненти горизонтальних координат, швидкостей та прискорень частинок
-    y: list = []  # компоненти вертикальних координат, швидкостей та прискорень частинок
-    vx: List[float] = []  # горизонтальна швидкість частинок
-    vy: List[float] = []  # вертикальна швидкість частинок
-    N: int = 12  # кількість частинок
-    Lx: int  # горизонтальна довжина резервуара
-    Ly: int  # вертикальна довжина резервуара
-    dt: float  # крок часу
-    dt2: float  # квадрат кроку часу
-
-    vmax: float = 1.6  # максимальная начальная скорость
-
-    ax: List[float]
-    ay: List[float]
-
-    pe: float  # потенціальна енергія
-    ke: float  # кінетична енергія
-
     def __init__(self, N, Lx, Ly, vmax, dt):
-        self.dt = dt
-        self.dt2 = self.dt ** 2
         self.N = N
         self.Lx = Lx
         self.Ly = Ly
         self.vmax = vmax
+        self.dt = dt
+        self.dt2 = dt ** 2
+
+        self.x = []
+        self.y = []
+        self.vx = []
+        self.vy = []
+        self.ax = []
+        self.ay = []
 
         rows, cols = get_dimensions(self.N)
         pos_row = self.Ly / rows
@@ -58,27 +46,19 @@ class MolecularDynamics:
             self.vy[i] -= vy_cum_div_n
 
     def accel(self):
-        ax, ay = [], []
-        # Ініціалізація прискорень
-        for i in range(self.N):
-            ax.append(0.0)
-            ay.append(0.0)
-        self.ax = ax
-        self.ay = ay
-
-        # Обчислення сил і прискорень
+        self.ax = [0.0] * self.N
+        self.ay = [0.0] * self.N
         pe = 0
         for i in range(self.N - 1):
             for j in range(i + 1, self.N):
                 dx = self.x[i] - self.x[j]
                 dy = self.y[i] - self.y[j]
-                # Виклик функції separation для обробки періодичних граничних умов
                 dx, dy = self.separation(dx, dy)
                 r = math.sqrt(dx ** 2 + dy ** 2)
-                force, potential = self.f(r)  # Функція f обчислює силу і потенціал
+                force, potential = self.f(r)
                 self.ax[i] += force * dx
                 self.ay[i] += force * dy
-                self.ax[j] -= force * dx  # Третій закон Ньютона
+                self.ax[j] -= force * dx
                 self.ay[j] -= force * dy
                 pe += potential
         self.pe = pe
@@ -107,29 +87,22 @@ class MolecularDynamics:
         ri3 = ri ** 3
         ri6 = ri3 ** 2
         g = 24 * ri * ri6 * (2 * ri6 - 1)
-        force = g / r  # Множник 1/r компенсується dx, dy для Fx, Fy
+        force = g / r
         potential = 4 * ri6 * (ri6 - 1)
         return force, potential
 
     def verlet(self):
-        # Обчислення нових положень
         for i in range(self.N):
             xnew = self.x[i] + self.vx[i] * self.dt + 0.5 * self.ax[i] * self.dt2
             ynew = self.y[i] + self.vy[i] * self.dt + 0.5 * self.ay[i] * self.dt2
-
-            # Періодичні граничні умови
             self.x[i], self.y[i] = self.periodic(xnew, ynew)
 
-        # Часткова зміна швидкостей за допомогою старого прискорення
         for i in range(self.N):
             self.vx[i] += 0.5 * self.ax[i] * self.dt
             self.vy[i] += 0.5 * self.ay[i] * self.dt
 
-        # Обчислення нового прискорення
         self.accel()
 
-        # Часткова зміна швидкостей за допомогою нового прискорення
-        # і обчислення кінетичної енергії
         ke = 0
         for i in range(self.N):
             self.vx[i] += 0.5 * self.ax[i] * self.dt
