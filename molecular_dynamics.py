@@ -1,5 +1,4 @@
 import math
-from typing import List
 from helpers import get_dimensions
 
 
@@ -109,3 +108,28 @@ class MolecularDynamics:
             self.vy[i] += 0.5 * self.ay[i] * self.dt
             ke += 0.5 * (self.vx[i] ** 2 + self.vy[i] ** 2)
         self.ke = ke
+
+    def temperature(self):
+        ke = self.ke
+        return ke / (self.N * 1.5)
+
+    def pressure(self):
+        virial = 0
+        for i in range(self.N - 1):
+            for j in range(i + 1, self.N):
+                dx = self.x[i] - self.x[j]
+                dy = self.y[i] - self.y[j]
+                dx, dy = self.separation(dx, dy)
+                r = math.sqrt(dx ** 2 + dy ** 2)
+                force, _ = self.f(r)
+                virial += force * r
+        return self.N * self.temperature() + virial / (2 * self.Lx * self.Ly)
+
+    def is_solid(self):
+        # Перевірка, чи залишається система в твердому стані
+        # Це просте припущення, що система залишається в твердому стані, якщо частинки не рухаються далеко від своїх початкових позицій
+        threshold = 0.1
+        for i in range(self.N):
+            if abs(self.x[i] - self.x[0]) > threshold or abs(self.y[i] - self.y[0]) > threshold:
+                return False
+        return True

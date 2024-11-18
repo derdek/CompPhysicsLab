@@ -1,4 +1,7 @@
+import os
+
 import pygame
+import matplotlib.pyplot as plt
 
 
 def draw_particles(screen, particles, aspect_ratio):
@@ -16,3 +19,17 @@ def get_dimensions(n):
     while n % i != 0:
         i -= 1
     return i, n // i
+
+
+def save_snapshot(filename, particles, width, height, aspect_ratio):
+    dir = "snapshots"
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    fig, ax = plt.subplots()
+    for point in zip(*particles):
+        ax.add_patch(plt.Circle(point, radius=0.1, color='blue'))
+    ax.set_aspect('equal')
+    ax.set_xlim(0, width)
+    ax.set_ylim(0, height)
+    plt.savefig(f'{dir}/{filename}')
+    plt.close(fig)

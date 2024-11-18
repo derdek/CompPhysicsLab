@@ -1,6 +1,6 @@
 import math
 import pygame
-from helpers import draw_particles
+from helpers import draw_particles, save_snapshot
 from molecular_dynamics import MolecularDynamics
 
 
@@ -25,9 +25,11 @@ def main():
     mol = MolecularDynamics(particles_count, container_width, container_height, max_speed, dt)
 
     running = True
+    snapshots = []
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                print("The simulation was interrupted by the user.")
                 running = False
 
         # Обчислення прискорень і інтегрування
@@ -40,7 +42,32 @@ def main():
         draw_particles(screen, zip(mol.x, mol.y), aspect_ratio)
         pygame.display.flip()
         pygame.time.delay(delay)
+
+        # Збереження знімків
+        if len(snapshots) < 10:
+            snapshots.append((mol.x.copy(), mol.y.copy()))
+
     pygame.quit()
+
+    # Збереження знімків у файл
+    for i, snapshot in enumerate(snapshots):
+        save_snapshot(
+            f"snapshot_{i}.png",
+            snapshot,
+            container_width,
+            container_height,
+            aspect_ratio
+        )
+
+    # Виведення повної енергії системи
+    total_energy = mol.pe + mol.ke
+    print(f"Total energy of the system: {total_energy}")
+
+    # Перевірка стану системи
+    if mol.is_solid():
+        print("The system remains in the solid state.")
+    else:
+        print("The system is not in the solid state.")
 
 
 if __name__ == "__main__":
