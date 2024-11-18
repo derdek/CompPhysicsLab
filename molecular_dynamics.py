@@ -1,6 +1,5 @@
 import math
 import numpy as np
-from typing import List
 
 from helpers import get_dimensions
 
@@ -49,6 +48,9 @@ class MolecularDynamics:
         for i in range(self.N):
             self.vx[i] -= vx_cum_div_n
             self.vy[i] -= vy_cum_div_n
+
+        self.xflux = 0
+        self.yflux = 0
 
     def accel(self):
         self.ax = [0.0] * self.N
@@ -100,7 +102,12 @@ class MolecularDynamics:
         for i in range(self.N):
             xnew = self.x[i] + self.vx[i] * self.dt + 0.5 * self.ax[i] * self.dt2
             ynew = self.y[i] + self.vy[i] * self.dt + 0.5 * self.ay[i] * self.dt2
-            self.x[i], self.y[i] = self.periodic(xnew, ynew)
+            self.x[i], self.y[i], self.xflux, self.yflux = self.periodic_boundary_conditions(
+                xnew, ynew, self.vx[i],
+                self.vy[i], self.Lx,
+                self.Ly, self.xflux,
+                self.yflux
+            )
 
         for i in range(self.N):
             self.vx[i] += 0.5 * self.ax[i] * self.dt
@@ -182,3 +189,44 @@ class MolecularDynamics:
         g[:-1] /= (rho * V_shell)
 
         return r, g
+
+    def periodic_boundary_conditions(self, xnew, ynew, px, py, Lx, Ly, xflux, yflux):
+        """
+        Реалізує періодичні граничні умови для частинки в двовимірному просторі.
+
+        Аргументи:
+            xnew, ynew: Нові координати частинки після переміщення.
+            px, py: Проекції швидкості частинки на осі X та Y.
+            Lx, Ly: Розміри системи по осях X та Y.
+            xflux, yflux: Змінні для підрахунку потоку (припущення).
+
+        Повертає:
+            xnew, ynew: Кориговані координати частинки.
+            xflux, yflux: Оновлені значення потоку (припущення).
+        """
+
+        if xnew < 0:
+            xnew += Lx
+            xflux += px
+        elif xnew >= Lx:
+            xnew -= Lx
+            xflux += px
+
+        if ynew < 0:
+            ynew += Ly
+            yflux += py
+        elif ynew >= Ly:
+            ynew -= Ly
+            yflux += py
+
+        return xnew, ynew, xflux, yflux
+
+    def calculate_pressure(self):
+        """
+        Розраховує тиск в системі за методом потоку.
+
+        Повертає:
+          pressure: Розрахований тиск.
+        """
+        pressure = ((self.xflux / (2 * self.Lx)) + (self.yflux / (2 * self.Ly))) / (self.dt * self.N)
+        return pressure
