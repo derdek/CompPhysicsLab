@@ -18,6 +18,8 @@ class MolecularDynamics:
         self.vy = []
         self.ax = []
         self.ay = []
+        self.pe = 0  # Ініціалізація потенціальної енергії
+        self.ke = 0  # Ініціалізація кінетичної енергії
 
         rows, cols = get_dimensions(self.N)
         pos_row = self.Ly / rows

@@ -1,9 +1,9 @@
 import math
-
-import numpy as np
 import pygame
+import random
 import matplotlib.pyplot as plt
-from helpers import load_equilibrium_config
+import numpy as np
+from helpers import draw_particles, save_snapshot, load_equilibrium_config
 from molecular_dynamics import MolecularDynamics
 
 
@@ -34,7 +34,8 @@ def main():
     mol.vx = vx
     mol.vy = vy
 
-    # Збереження початкової енергії
+    # Ініціалізація початкової енергії
+    mol.accel()
     initial_energy = mol.pe + mol.ke
 
     temperatures = []
