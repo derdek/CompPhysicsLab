@@ -35,18 +35,15 @@ def main():
     mol.vx = vx
     mol.vy = vy
 
-    # Ініціалізація початкової енергії
-    mol.accel()
-    initial_energy = mol.pe + mol.ke
+    scaling_factor = 1.1
+    melted = False
 
-    temperatures = []
-    energies = []
-    pressures = []
-    temperature_factors = [1, 2, 3, 4, 5, 6]
-
-    for factor in temperature_factors:
-        mol.vx = [v * factor for v in vx]  # Збільшення швидкостей
-        mol.vy = [v * factor for v in vy]  # Збільшення швидкостей
+    while not melted:
+        # Зменшення щільності
+        mol.Lx *= scaling_factor
+        mol.Ly *= scaling_factor
+        mol.x = [xi * scaling_factor for xi in mol.x]
+        mol.y = [yi * scaling_factor for yi in mol.y]
 
         running = True
         temp_list = []
@@ -68,6 +65,10 @@ def main():
                 temp_list.append(mol.temperature())
                 pressure_list.append(mol.pressure())
 
+            # Збереження знімків
+            if mol.step_count % 25 == 0:
+                save_snapshot(f"snapshot_{mol.step_count}.png", (mol.x.copy(), mol.y.copy()), mol.Lx, mol.Ly)
+
             # Перевірка кінця симуляції
             if mol.step_count >= 150:
                 running = False
@@ -77,46 +78,17 @@ def main():
         average_pressure = sum(pressure_list) / len(pressure_list)
         total_energy = mol.pe + mol.ke
 
-        temperatures.append(average_temperature)
-        energies.append(total_energy - initial_energy)
-        pressures.append(average_pressure)
+        print(f"Scaling factor: {scaling_factor}")
+        print(f"Average temperature: {average_temperature}")
+        print(f"Average pressure: {average_pressure}")
+        print(f"Total energy: {total_energy}")
+
+        # Перевірка на плавлення
+        if not mol.is_solid():
+            melted = True
+            print("The system has melted.")
 
     pygame.quit()
-
-    # Створення папки для збереження графіків
-    output_dir = "plots"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    # Побудова графіків
-    plt.figure(figsize=(12, 6))
-
-    plt.subplot(1, 2, 1)
-    plt.plot(temperatures, energies, marker='o')
-    plt.xlabel('Temperature (T)')
-    plt.ylabel('E(T) - E(0)')
-    plt.title('E(T) - E(0) vs Temperature')
-    plt.grid(True)
-
-    plt.subplot(1, 2, 2)
-    plt.plot(temperatures, pressures, marker='o')
-    plt.xlabel('Temperature (T)')
-    plt.ylabel('Pressure (P)')
-    plt.title('Pressure vs Temperature')
-    plt.grid(True)
-
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/energy_pressure_vs_temperature.png')
-    plt.show()
-
-    # Перевірка пропорційності
-    slope, intercept = np.polyfit(temperatures, energies, 1)
-    print(f"Slope of E(T) - E(0) vs T: {slope}")
-
-    # Порівняння з очікуваними значеннями
-    expected_slope = 1.5 * particles_count  # Для гармонічного твердого тіла
-    print(f"Expected slope for harmonic solid: {expected_slope}")
-    print(f"Difference: {abs(slope - expected_slope)}")
 
 
 if __name__ == "__main__":
