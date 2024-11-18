@@ -1,6 +1,9 @@
 import math
+
+import numpy as np
 import pygame
-from helpers import draw_particles, save_snapshot, load_equilibrium_config
+import matplotlib.pyplot as plt
+from helpers import load_equilibrium_config
 from molecular_dynamics import MolecularDynamics
 
 
@@ -28,102 +31,84 @@ def main():
     mol = MolecularDynamics(particles_count, container_width, container_height, max_speed, dt)
     mol.x = x
     mol.y = y
-    mol.vx = [v * 2 for v in vx]  # Збільшення швидкостей вдвічі
-    mol.vy = [v * 2 for v in vy]  # Збільшення швидкостей вдвічі
+    mol.vx = vx
+    mol.vy = vy
 
-    running = True
-    snapshots = []
+    # Збереження початкової енергії
+    initial_energy = mol.pe + mol.ke
+
     temperatures = []
+    energies = []
     pressures = []
-    snapshot_interval = 25
-    equilibrium_steps = 50
-    averaging_steps = 100
-
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        # Обчислення прискорень і інтегрування
-        mol.accel()
-        for _ in range(nsnap):
-            mol.verlet()
-
-        # Візуалізація
-        screen.fill((0, 0, 0))  # Очищення екрану
-        draw_particles(screen, zip(mol.x, mol.y), aspect_ratio)
-        pygame.display.flip()
-        pygame.time.delay(delay)
-
-        # Збереження знімків
-        if len(snapshots) < 10 and mol.step_count % snapshot_interval == 0:
-            snapshots.append((mol.x.copy(), mol.y.copy()))
-
-        # Збереження температури та тиску
-        if mol.step_count >= equilibrium_steps and mol.step_count < equilibrium_steps + averaging_steps:
-            temperatures.append(mol.temperature())
-            pressures.append(mol.pressure())
-
-        # Перевірка кінця симуляції
-        if mol.step_count >= equilibrium_steps + averaging_steps:
-            running = False
-
-    pygame.quit()
-
-    # Збереження знімків у файл
-    for i, snapshot in enumerate(snapshots):
-        save_snapshot(
-            f"snapshot_{i}.png",
-            snapshot,
-            container_width,
-            container_height
-        )
-
-    # Виведення нової повної енергії системи
-    total_energy = mol.pe + mol.ke
-    print(f"New total energy of the system: {total_energy}")
-
-    # Усереднення температури та тиску
-    average_temperature = sum(temperatures) / len(temperatures)
-    average_pressure = sum(pressures) / len(pressures)
-    print(f"Average temperature: {average_temperature}")
-    print(f"Average pressure: {average_pressure}")
-
-    # Повторення збільшення температури та вимірювання P(T) та E(T) для шести різних температур
     temperature_factors = [1, 2, 3, 4, 5, 6]
+
     for factor in temperature_factors:
         mol.vx = [v * factor for v in vx]  # Збільшення швидкостей
         mol.vy = [v * factor for v in vy]  # Збільшення швидкостей
 
         running = True
-        temperatures = []
-        pressures = []
+        temp_list = []
+        pressure_list = []
         mol.step_count = 0
 
         while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
             # Обчислення прискорень і інтегрування
             mol.accel()
             for _ in range(nsnap):
                 mol.verlet()
 
             # Збереження температури та тиску
-            if mol.step_count >= equilibrium_steps and mol.step_count < equilibrium_steps + averaging_steps:
-                temperatures.append(mol.temperature())
-                pressures.append(mol.pressure())
+            if mol.step_count >= 50 and mol.step_count < 150:
+                temp_list.append(mol.temperature())
+                pressure_list.append(mol.pressure())
 
             # Перевірка кінця симуляції
-            if mol.step_count >= equilibrium_steps + averaging_steps:
+            if mol.step_count >= 150:
                 running = False
 
         # Усереднення температури та тиску
-        average_temperature = sum(temperatures) / len(temperatures)
-        average_pressure = sum(pressures) / len(pressures)
+        average_temperature = sum(temp_list) / len(temp_list)
+        average_pressure = sum(pressure_list) / len(pressure_list)
         total_energy = mol.pe + mol.ke
-        print(f"Temperature factor: {factor}")
-        print(f"Average temperature: {average_temperature}")
-        print(f"Average pressure: {average_pressure}")
-        print(f"Total energy: {total_energy}")
-        print()
+
+        temperatures.append(average_temperature)
+        energies.append(total_energy - initial_energy)
+        pressures.append(average_pressure)
+
+    pygame.quit()
+
+    # Побудова графіків
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(temperatures, energies, marker='o')
+    plt.xlabel('Temperature (T)')
+    plt.ylabel('E(T) - E(0)')
+    plt.title('E(T) - E(0) vs Temperature')
+    plt.grid(True)
+
+    plt.subplot(1, 2, 2)
+    plt.plot(temperatures, pressures, marker='o')
+    plt.xlabel('Temperature (T)')
+    plt.ylabel('Pressure (P)')
+    plt.title('Pressure vs Temperature')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+    # Перевірка пропорційності
+    slope, intercept = np.polyfit(temperatures, energies, 1)
+    print(f"Slope of E(T) - E(0) vs T: {slope}")
+
+    # Порівняння з очікуваними значеннями
+    expected_slope = 1.5 * particles_count  # Для гармонічного твердого тіла
+    print(f"Expected slope for harmonic solid: {expected_slope}")
+    print(f"Difference: {abs(slope - expected_slope)}")
 
 
 if __name__ == "__main__":
