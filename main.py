@@ -3,6 +3,7 @@ import pygame
 import random
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from helpers import draw_particles, save_snapshot, load_equilibrium_config
 from molecular_dynamics import MolecularDynamics
 
@@ -82,6 +83,11 @@ def main():
 
     pygame.quit()
 
+    # Створення папки для збереження графіків
+    output_dir = "plots"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     # Побудова графіків
     plt.figure(figsize=(12, 6))
 
@@ -100,6 +106,7 @@ def main():
     plt.grid(True)
 
     plt.tight_layout()
+    plt.savefig(f'{output_dir}/energy_pressure_vs_temperature.png')
     plt.show()
 
     # Перевірка пропорційності
