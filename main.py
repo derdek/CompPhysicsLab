@@ -62,11 +62,11 @@ def main():
         total_energy = mol.pe + mol.ke
 
         print(f"Scaling factor: {ssf}")
-        print(f"Average temperature: {average_temperature} K")
-        print(f"Max temperature: {max(temp_list)} K")
-        print(f"Max pressure: {max(pressure_list)} Pa")
-        print(f"Average pressure: {average_pressure} Pa")
-        print(f"Total energy: {total_energy} J")
+        print(f"Max temperature: {max(temp_list):.2e}")
+        print(f"Max pressure: {max(pressure_list):.2e}")
+        print(f"Average temperature: {average_temperature:.2e}")
+        print(f"Average pressure: {average_pressure:.2e}")
+        print(f"Total energy: {total_energy:.2e} Eh")
         print()
 
         # Перевірка на плавлення
